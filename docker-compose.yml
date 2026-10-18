@@ -1,6 +1,7 @@
 x-ruby: &ruby
   build:
     context: .
+    target: base
     args:
       RUBY_VERSION: 2.7.8
       GEM_VERSION: 3.3.22

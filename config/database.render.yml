@@ -1,0 +1,5 @@
+production:
+  adapter: postgresql
+  encoding: utf8
+  url: <%= ENV.fetch('DATABASE_URL', 'postgresql://localhost/idiario_build').to_json %>
+  pool: <%= ENV.fetch('DB_POOL', '10') %>
