@@ -12,30 +12,28 @@ ARG BUNDLER_VERSION=2.4.22
 ENV APP_PATH /app
 ENV BUNDLE_PATH /box
 
-# Fora de suporte, o bullseye sai dos mirrors principais para o archive.debian.org
-# em data não anunciada — build com cache de layer não percebe, build do zero quebra
-# no apt-get update. A cascata cobre os três estados possíveis (mirrors servindo tudo;
-# archive sem o bullseye-security; archive completo), então o build não depende de
-# qual deles é o do dia.
+# Bullseye packages are available from the official Debian archive.
 RUN set -e; \
-    if ! apt-get update -qq; then \
-      sed -i 's|http://deb.debian.org|http://archive.debian.org|g' /etc/apt/sources.list; \
-      echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive; \
-      apt-get update -qq --allow-releaseinfo-change \
-        || { sed -i '/-security/d' /etc/apt/sources.list; \
-             apt-get update -qq --allow-releaseinfo-change; }; \
-    fi
-RUN apt-get install -y \
-    build-essential \
-    git \
-    libpq-dev \
-    shared-mime-info \
-    imagemagick \
-    curl
+    sed -i 's|http://deb.debian.org|https://archive.debian.org|g' /etc/apt/sources.list; \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive; \
+    rm -rf /var/lib/apt/lists/*; \
+    apt-get -o Acquire::Retries=3 update --allow-releaseinfo-change; \
+    apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+      build-essential \
+      git \
+      libpq-dev \
+      shared-mime-info \
+      imagemagick \
+      curl \
+      ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 22 LTS via NodeSource (replaces Debian's outdated Node 10.x)
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource-setup.sh && \
+    bash /tmp/nodesource-setup.sh && \
+    apt-get -o Acquire::Retries=3 install -y --no-install-recommends nodejs && \
+    rm -f /tmp/nodesource-setup.sh && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN apt-get clean
 RUN npm i -g yarn
